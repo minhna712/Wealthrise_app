@@ -1,12 +1,13 @@
 import type { Screen } from "../App";
 import { GROUPS } from "../data/groupData";
+import { useUserState } from "../state/UserStateContext";
 
 interface Props {
   onNavigate: (s: Screen) => void;
   onGroupDetail: (groupId: string) => void;
 }
 
-function GroupCard({ g, onGroupDetail }: { g: typeof GROUPS[0]; onGroupDetail: (id: string) => void }) {
+function GroupCard({ g, joined, onGroupDetail }: { g: typeof GROUPS[0]; joined: boolean; onGroupDetail: (id: string) => void }) {
   return (
     <div style={{ padding:"14px 16px", background:"#FFFFFF", borderRadius:"18px", boxShadow:"0 1px 8px rgba(0,0,0,0.07)", marginBottom:"10px" }}>
       <div style={{ display:"flex", alignItems:"flex-start", gap:"12px" }}>
@@ -28,12 +29,12 @@ function GroupCard({ g, onGroupDetail }: { g: typeof GROUPS[0]; onGroupDetail: (
           onClick={() => onGroupDetail(g.id)}
           style={{
             width:"100%", height:"40px", borderRadius:"12px", border:"none", cursor:"pointer",
-            background: g.joined ? g.color : "#F0EAE4",
-            color: g.joined ? g.accent : "#6A5A50",
+            background: joined ? g.color : "#F0EAE4",
+            color: joined ? g.accent : "#6A5A50",
             fontSize:"13px", fontWeight:700, fontFamily:"'Nunito', sans-serif",
           }}
         >
-          {g.joined ? "Vào nhóm" : "Khám phá nhóm"}
+          {joined ? "Vào nhóm" : "Khám phá nhóm"}
         </button>
       </div>
     </div>
@@ -41,27 +42,30 @@ function GroupCard({ g, onGroupDetail }: { g: typeof GROUPS[0]; onGroupDetail: (
 }
 
 export default function GroupScreen({ onGroupDetail }: Props) {
-  const myGroups = GROUPS.filter(g => g.joined);
-  const discover = GROUPS.filter(g => !g.joined);
+  const { userState } = useUserState();
+  const { joinedGroupIds } = userState;
+
+  const myGroups  = GROUPS.filter(g => joinedGroupIds.includes(g.id));
+  const discover  = GROUPS.filter(g => !joinedGroupIds.includes(g.id));
 
   return (
     <div style={{ minHeight:"100%", background:"#FFF9F3", fontFamily:"'Nunito', sans-serif" }}>
-      {/* Header */}
       <div style={{ padding:"16px 20px 12px" }}>
         <h1 style={{ margin:0, fontSize:"24px", fontWeight:900, color:"#2A2420" }}>Nhóm</h1>
         <p style={{ margin:"4px 0 0", fontSize:"13px", color:"#9A9088" }}>Cùng nhau dễ hơn. Vui hơn.</p>
       </div>
 
       <div style={{ padding:"0 20px" }}>
-        {/* My groups */}
         <p style={{ margin:"0 0 12px", fontSize:"16px", fontWeight:800, color:"#2A2420" }}>Nhóm của bạn</p>
-        {myGroups.map(g => <GroupCard key={g.id} g={g} onGroupDetail={onGroupDetail}/>)}
+        {myGroups.length === 0 && (
+          <p style={{ fontSize:"13px", color:"#9A9088", marginBottom:"12px" }}>Bạn chưa tham gia nhóm nào.</p>
+        )}
+        {myGroups.map(g => <GroupCard key={g.id} g={g} joined={true} onGroupDetail={onGroupDetail}/>)}
 
-        {/* Discover */}
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", margin:"20px 0 12px" }}>
           <p style={{ margin:0, fontSize:"16px", fontWeight:800, color:"#2A2420" }}>Khám phá nhóm</p>
         </div>
-        {discover.map(g => <GroupCard key={g.id} g={g} onGroupDetail={onGroupDetail}/>)}
+        {discover.map(g => <GroupCard key={g.id} g={g} joined={false} onGroupDetail={onGroupDetail}/>)}
       </div>
     </div>
   );

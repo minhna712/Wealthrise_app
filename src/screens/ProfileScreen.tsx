@@ -1,20 +1,24 @@
+import { useUserState } from "../state/UserStateContext";
 import type { Screen } from "../App";
 
 interface Props {
   onNavigate: (s: Screen) => void;
 }
 
-const MENU: { icon:string; label:string; desc:string; screen:Screen }[] = [
-  { icon:"🔖", label:"Bài đã lưu",        desc:"3 bài viết",      screen:"saved-posts"       },
-  { icon:"🏆", label:"Lịch sử thử thách", desc:"1 đã hoàn thành", screen:"challenge-history" },
-  { icon:"🔒", label:"Quyền riêng tư",    desc:"",                screen:"privacy"           },
-  { icon:"⚙️", label:"Cài đặt",           desc:"",                screen:"settings"          },
-];
-
 export default function ProfileScreen({ onNavigate }: Props) {
+  const { userState } = useUserState();
+  const savedCount = userState.savedPostIds.length;
+  const completedCount = userState.challengeProgress.filter(p => p.status === "completed").length;
+
+  const MENU: { icon:string; label:string; desc:string; screen:Screen }[] = [
+    { icon:"🔖", label:"Bài đã lưu",        desc:`${savedCount} bài viết`,       screen:"saved-posts"       },
+    { icon:"🏆", label:"Lịch sử thử thách", desc:`${completedCount} đã hoàn thành`, screen:"challenge-history" },
+    { icon:"🔒", label:"Quyền riêng tư",    desc:"",                             screen:"privacy"           },
+    { icon:"⚙️", label:"Cài đặt",           desc:"",                             screen:"settings"          },
+  ];
+
   return (
     <div style={{ minHeight:"100%", background:"#FFF9F3", fontFamily:"'Nunito', sans-serif" }}>
-      {/* Avatar + name */}
       <div style={{ padding:"32px 20px 24px", textAlign:"center" }}>
         <div style={{ position:"relative", display:"inline-block", marginBottom:"14px" }}>
           <div style={{ width:"84px", height:"84px", borderRadius:"50%", background:"linear-gradient(135deg,#F28C64,#F4A7A2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"38px", margin:"0 auto" }}>🙋</div>
@@ -28,13 +32,12 @@ export default function ProfileScreen({ onNavigate }: Props) {
         </button>
       </div>
 
-      {/* Menu */}
       <div style={{ margin:"0 20px 24px", background:"#FFFFFF", borderRadius:"20px", boxShadow:"0 1px 8px rgba(0,0,0,0.07)", overflow:"hidden" }}>
         {MENU.map((m, i) => (
           <button key={m.label} onClick={() => onNavigate(m.screen)} style={{
             display:"flex", alignItems:"center", gap:"14px", width:"100%", textAlign:"left",
             padding:"16px", background:"none", border:"none", cursor:"pointer",
-            borderBottom: i < MENU.length - 1 ? "1px solid #F0EAE4" : "none",
+            borderBottom:i < MENU.length - 1 ? "1px solid #F0EAE4" : "none",
           }}>
             <div style={{ width:"40px", height:"40px", borderRadius:"13px", background:"#F8F5F0", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"20px" }}>{m.icon}</div>
             <div style={{ flex:1 }}>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { GROUPS, type Group, type GroupPost } from "../data/groupData";
 import type { PostData } from "./PostDetailScreen";
+import { useUserState } from "../state/UserStateContext";
 
 interface Props {
   groupId: string;
@@ -25,8 +26,10 @@ function StatusPill({ status }: { status: PostStatus }) {
 }
 
 function PostCard({ p, groupName, onOpen }: { p: GroupPost; groupName: string; onOpen: (p: GroupPost) => void }) {
-  const [liked, setLiked] = useState(false);
+  const { userState, likePost, unlikePost } = useUserState();
+  const liked = userState.likedPostIds.includes(p.id);
   const blur = p.mine && p.status === "rejected";
+
   return (
     <div
       onClick={() => p.status === "approved" && onOpen(p)}
@@ -42,10 +45,9 @@ function PostCard({ p, groupName, onOpen }: { p: GroupPost; groupName: string; o
       {p.mine && <StatusPill status={p.status}/>}
       <p style={{ margin:"0 0 12px", fontSize:"14px", color:"#3A3630", lineHeight:1.6 }}>{p.text}</p>
 
-      {/* Only Like */}
       <div onClick={e => e.stopPropagation()} style={{ borderTop:"1px solid #F0EAE4", paddingTop:"10px" }}>
         <button
-          onClick={() => setLiked(v => !v)}
+          onClick={() => liked ? unlikePost(p.id) : likePost(p.id)}
           style={{ display:"flex", alignItems:"center", gap:"6px", background:"none", border:"none", cursor:"pointer", padding:"2px 0" }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill={liked?"#D95C5C":"none"} stroke={liked?"#D95C5C":"#9A9088"} strokeWidth="2" strokeLinecap="round">
@@ -61,8 +63,11 @@ function PostCard({ p, groupName, onOpen }: { p: GroupPost; groupName: string; o
 }
 
 export default function GroupDetailScreen({ groupId, onBack, onPostDetail, onChallengeDetail }: Props) {
+  const { userState, joinGroup, leaveGroup } = useUserState();
   const group: Group = GROUPS.find(g => g.id === groupId) ?? GROUPS[0];
   const [tab, setTab] = useState<"feed"|"members"|"challenge">("feed");
+
+  const joined = userState.joinedGroupIds.includes(group.id);
 
   const handleOpen = (p: GroupPost) => {
     onPostDetail?.({ id:p.id, author:p.author, avatar:p.avatar, time:p.time, text:p.text, likes:p.likes, groupName:group.name, isMine:p.mine });
@@ -70,7 +75,6 @@ export default function GroupDetailScreen({ groupId, onBack, onPostDetail, onCha
 
   return (
     <div style={{ minHeight:"100%", background:"#FFF8F4", fontFamily:"'Nunito', sans-serif" }}>
-      {/* Header */}
       <div style={{ display:"flex", alignItems:"center", gap:"12px", padding:"16px 20px 12px" }}>
         <button onClick={onBack} style={{ background:"none", border:"none", cursor:"pointer", padding:"4px" }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5F6368" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
@@ -79,9 +83,14 @@ export default function GroupDetailScreen({ groupId, onBack, onPostDetail, onCha
           <h1 style={{ margin:0, fontSize:"18px", fontWeight:800, color:"#2A2420" }}>{group.name}</h1>
           <p style={{ margin:0, fontSize:"12px", color:"#9A9088" }}>👥 {group.memberCount} thành viên · {group.activity}</p>
         </div>
+        <button
+          onClick={() => joined ? leaveGroup(group.id) : joinGroup(group.id)}
+          style={{ padding:"7px 14px", borderRadius:"12px", border:"none", cursor:"pointer", background: joined ? "#F0EAE4" : group.color, color: joined ? "#9A7060" : group.accent, fontSize:"12px", fontWeight:700, fontFamily:"'Nunito', sans-serif" }}
+        >
+          {joined ? "Rời nhóm" : "Tham gia"}
+        </button>
       </div>
 
-      {/* Info card */}
       <div style={{ margin:"0 20px 14px", padding:"14px 16px", background:`rgba(${group.accent.length>6?'123,152,126':'123,152,126'},0.10)`, borderRadius:"16px", border:`1px solid ${group.color}` }}>
         <p style={{ margin:"0 0 6px", fontSize:"13px", fontWeight:700, color:group.accent }}>Về nhóm này</p>
         <p style={{ margin:"0 0 8px", fontSize:"13px", color:"#3A3630", lineHeight:1.5 }}>{group.description}</p>
@@ -92,7 +101,6 @@ export default function GroupDetailScreen({ groupId, onBack, onPostDetail, onCha
         </div>
       </div>
 
-      {/* Tabs */}
       <div style={{ display:"flex", borderBottom:"2px solid #F0EAE4", margin:"0 20px" }}>
         {([["feed","Bài viết"],["members","Thành viên"],["challenge","Thử thách"]] as const).map(([t,l]) => (
           <button key={t} onClick={() => setTab(t)} style={{ flex:1, height:"40px", background:"none", border:"none", cursor:"pointer", fontFamily:"'Nunito', sans-serif", fontSize:"13px", fontWeight:tab===t?700:500, color:tab===t?"#F28C64":"#9A9088", borderBottom:tab===t?"2px solid #F28C64":"2px solid transparent", marginBottom:"-2px" }}>{l}</button>

@@ -29,6 +29,7 @@ import PrivacyScreen      from "./screens/PrivacyScreen";
 import SettingsScreen     from "./screens/SettingsScreen";
 import NotificationScreen from "./screens/NotificationScreen";
 import { NOTIFICATIONS } from "./data/notifications";
+import { useUserState } from "./state/UserStateContext";
 
 export type Screen =
   | "onboarding" | "goals21" | "login22" | "purpose23" | "pace24" | "reminder25" | "habits26"
@@ -74,7 +75,6 @@ function todayKey() {
 function loadCompletion(habits: Habit[]): Record<string, boolean> {
   const key = `wr_completion_${todayKey()}`;
   const stored = lsGet<Record<string, boolean>>(key, {});
-  // Make sure all active habits are present
   const result: Record<string, boolean> = {};
   habits.filter(h => h.status === "active").forEach(h => {
     result[h.id] = stored[h.id] ?? false;
@@ -102,37 +102,30 @@ const HIDE_NAV_SCREENS: Screen[] = [
 
 export interface OnboardingData {
   goals: string[]; pace: string|null; reminder: string|null; habits: string[];
-  /* kept for compat with any remaining code */
   purpose?: string|null;
 }
 
-/* Re-export for any remaining imports — notifications now live in data/notifications.ts */
+/* Re-export for any remaining imports */
 export const MOCK_NOTIFICATIONS = NOTIFICATIONS.map(n => ({
-  id: n.id,
-  icon: n.icon,
-  text: n.body,
-  time: n.time,
-  read: n.read,
+  id: n.id, icon: n.icon, text: n.body, time: n.time, read: n.read,
 }));
 
 export default function App() {
-  /* DEV: always start onboarding so all screens are reachable during development */
+  const { userState, markAllNotificationsRead, resetUserState } = useUserState();
+
   const [screen,    setScreen]    = useState<Screen>("onboarding");
   const [activeTab, setActiveTab] = useState<Tab>("today");
 
-  /* ── Onboarding data — persisted ── */
   const [data, setData] = useState<OnboardingData>(() =>
     lsGet("wr_onboarding", { goals:[], pace:null, reminder:null, habits:[] })
   );
   useEffect(() => { lsSet("wr_onboarding", data); }, [data]);
 
-  /* ── Habits list — derived from onboarding selection ── */
   const [habits, setHabits] = useState<Habit[]>(() =>
     lsGet<Habit[]>("wr_habits", [])
   );
   useEffect(() => { lsSet("wr_habits", habits); }, [habits]);
 
-  /* ── Habit completion — per day ── */
   const [completed, setCompleted] = useState<Record<string, boolean>>(() =>
     loadCompletion(lsGet<Habit[]>("wr_habits", []))
   );
@@ -140,15 +133,13 @@ export default function App() {
     lsSet(`wr_completion_${todayKey()}`, completed);
   }, [completed]);
 
-  /* ── Notifications read state ── */
-  const [readNotifs, setReadNotifs] = useState<Set<string>>(() =>
-    new Set(lsGet<string[]>("wr_read_notifs", []))
-  );
-  const unreadCount = MOCK_NOTIFICATIONS.filter(n => !n.read && !readNotifs.has(n.id)).length;
+  /* Unread count derived from global userState */
+  const unreadCount = NOTIFICATIONS.filter(
+    n => !n.read && !userState.readNotificationIds.includes(n.id)
+  ).length;
+
   const markAllRead = () => {
-    const all = new Set(MOCK_NOTIFICATIONS.map(n => n.id));
-    setReadNotifs(all);
-    lsSet("wr_read_notifs", [...all]);
+    markAllNotificationsRead(NOTIFICATIONS.map(n => n.id));
   };
 
   const [selectedGroupId,      setSelectedGroupId]      = useState<string>("active-daily");
@@ -158,9 +149,8 @@ export default function App() {
   const [selectedClaimId,      setSelectedClaimId]      = useState<string>("sleep-cycles");
   const [exploreListMode,      setExploreListMode]      = useState<"popular"|"for-you"|"topic">("popular");
   const [selectedPost,         setSelectedPost]         = useState<PostData | null>(null);
-  const [selectedChallengeId,  setSelectedChallengeId]  = useState<string>("c-sleep");
+  const [selectedChallengeId,  setSelectedChallengeId]  = useState<string>("sleep-7");
 
-  /* Stack-based back navigation */
   const [screenStack, setScreenStack] = useState<Screen[]>([]);
 
   const navigate = (s: Screen) => {
@@ -196,7 +186,6 @@ export default function App() {
 
   const toggleHabit = (id: string) => setCompleted(c => ({ ...c, [id]: !c[id] }));
 
-  /* Finish onboarding: build habits from selected IDs, then go to Today */
   const finishOnboarding = (selectedHabitIds: string[], allSuggested: Habit[]) => {
     const chosen = allSuggested.filter(h => selectedHabitIds.includes(h.id));
     setHabits(chosen);
@@ -220,12 +209,22 @@ export default function App() {
   const selectedHabit = habits.find(h => h.id === selectedHabitId) ?? habits[0];
   const showNav = !HIDE_NAV_SCREENS.includes(screen);
 
+  const handleResetDemo = () => {
+    /* Clear all wr_* keys then restore mock state */
+    Object.keys(localStorage).forEach(k => { if (k.startsWith("wr_")) localStorage.removeItem(k); });
+    resetUserState();
+    setScreen("onboarding");
+    setScreenStack([]);
+    setHabits([]);
+    setCompleted({});
+    setData({ goals:[], pace:null, reminder:null, habits:[] });
+  };
+
   return (
     <div style={{ width:"390px", height:"844px", display:"flex", flexDirection:"column", background:"#FFF8F4", fontFamily:"'Nunito', sans-serif", overflow:"hidden", position:"relative" }}>
       <StatusBar />
       <div style={{ flex:1, overflowY:"auto", overflowX:"hidden", scrollbarWidth:"none" }}>
 
-        {/* ── Onboarding flow: Welcome → Goals → Pace → Reminder → Habits → Today ── */}
         {screen === "onboarding" && (
           <OnboardingScreen onNext={() => navigate("goals21")}/>
         )}
@@ -266,11 +265,10 @@ export default function App() {
           />
         )}
 
-        {/* Legacy screens kept in file, no longer in main flow */}
+        {/* Legacy screens — kept but not in main flow */}
         {screen === "login22"   && <Screen22Login onContinue={() => switchTab("today")}/>}
         {screen === "purpose23" && <Screen23Purpose selected={data.purpose ?? null} onChange={(p) => setData(d => ({ ...d, purpose: p }))} onBack={goBack} onSkip={() => navigate("pace24")} onNext={() => navigate("pace24")}/>}
 
-        {/* ── Today ── */}
         {screen === "today" && (
           <TodayScreen
             habits={habits.filter(h => h.status === "active")}
@@ -286,8 +284,6 @@ export default function App() {
 
         {screen === "notifications" && (
           <NotificationScreen
-            notifications={MOCK_NOTIFICATIONS}
-            readIds={readNotifs}
             onBack={goBack}
             onMarkAllRead={markAllRead}
           />
@@ -307,6 +303,7 @@ export default function App() {
             onNavigateToHabitDetail={navigateToHabitDetail}
             onUpdateHabit={updateHabit}
             onViewAllChallenges={() => navigate("all-challenges")}
+            onChallengeDetail={navigateToChallengeDetail}
           />
         )}
         {screen === "create-habit"     && <CreateHabitScreen onSave={addHabit} onBack={goBack}/>}
@@ -323,7 +320,7 @@ export default function App() {
         {screen === "saved-posts"       && <SavedPostsScreen onBack={goBack}/>}
         {screen === "challenge-history" && <ChallengeHistoryScreen onBack={goBack}/>}
         {screen === "privacy"           && <PrivacyScreen onBack={goBack}/>}
-        {screen === "settings"          && <SettingsScreen onBack={goBack} onResetDemo={() => { setScreen("onboarding"); setScreenStack([]); setHabits([]); setCompleted({}); setData({ goals:[], pace:null, reminder:null, habits:[] }); }}/>}
+        {screen === "settings"          && <SettingsScreen onBack={goBack} onResetDemo={handleResetDemo}/>}
       </div>
       {showNav && <BottomNav activeTab={activeTab} onSwitch={switchTab}/>}
     </div>

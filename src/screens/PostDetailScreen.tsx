@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useUserState } from "../state/UserStateContext";
 
 export interface PostData {
   id: number;
@@ -18,7 +19,8 @@ interface Props {
 }
 
 export default function PostDetailScreen({ post, onBack }: Props) {
-  const [liked, setLiked] = useState(false);
+  const { userState, likePost, unlikePost } = useUserState();
+  const liked = userState.likedPostIds.includes(post.id);
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState("");
 
@@ -26,7 +28,6 @@ export default function PostDetailScreen({ post, onBack }: Props) {
 
   return (
     <div style={{ minHeight:"100%", background:"#FFF8F4", fontFamily:"'Nunito', sans-serif" }}>
-      {/* Header */}
       <div style={{ display:"flex", alignItems:"center", gap:"12px", padding:"16px 20px 12px", background:"#FFFFFF", borderBottom:"1px solid #F0EAE4" }}>
         <button onClick={onBack} style={{ background:"none", border:"none", cursor:"pointer", padding:"4px" }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5F6368" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
@@ -39,7 +40,6 @@ export default function PostDetailScreen({ post, onBack }: Props) {
       </div>
 
       <div style={{ padding:"16px 20px" }}>
-        {/* Author */}
         <div style={{ display:"flex", alignItems:"center", gap:"10px", marginBottom:"12px" }}>
           <div style={{ width:"42px", height:"42px", borderRadius:"50%", background:"#F0EAE4", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"22px" }}>{post.avatar}</div>
           <div>
@@ -48,21 +48,18 @@ export default function PostDetailScreen({ post, onBack }: Props) {
           </div>
         </div>
 
-        {/* Content */}
         <p style={{ margin:"0 0 14px", fontSize:"15px", color:"#3A3630", lineHeight:1.7 }}>{post.text}</p>
         {post.image && (
           <div style={{ height:"180px", borderRadius:"16px", background:"linear-gradient(135deg,#EDF5EF,#D0E8D2)", marginBottom:"14px", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"48px" }}>{post.image}</div>
         )}
 
-        {/* Like count */}
         <div style={{ paddingBottom:"12px", borderBottom:"1px solid #F0EAE4" }}>
           <span style={{ fontSize:"12px", color:"#9A9088" }}>♡ {post.likes + (liked ? 1 : 0)} lượt thích</span>
         </div>
 
-        {/* Like action */}
         <div style={{ paddingTop:"10px" }}>
           <button
-            onClick={() => { setLiked(v => !v); if (!liked) showToast("Đã thích bài viết"); }}
+            onClick={() => { liked ? unlikePost(post.id) : likePost(post.id); if (!liked) showToast("Đã thích bài viết"); }}
             style={{ display:"flex", alignItems:"center", gap:"7px", background:"none", border:"none", cursor:"pointer", padding:"6px 0" }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill={liked?"#D95C5C":"none"} stroke={liked?"#D95C5C":"#9A9088"} strokeWidth="2" strokeLinecap="round">
@@ -75,7 +72,6 @@ export default function PostDetailScreen({ post, onBack }: Props) {
         </div>
       </div>
 
-      {/* "···" menu sheet */}
       {menuOpen && (
         <>
           <div onClick={() => setMenuOpen(false)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.35)", zIndex:50 }}/>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ARTICLES, getRelatedArticles } from "../data/exploreData";
 import ShareSheet from "../components/ShareSheet";
+import { useUserState } from "../state/UserStateContext";
 
 interface Props {
   articleId: string;
@@ -12,26 +13,33 @@ interface Props {
 }
 
 export default function ArticleScreen({ articleId, onBack, onNavigateToEvidence, onNavigateToArticle, onNavigateToChallenge }: Props) {
-  const [saved, setSaved] = useState(false);
+  const { userState, saveArticle, unsaveArticle } = useUserState();
+  const saved = userState.savedArticleIds.includes(articleId);
   const [showShare, setShowShare] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const article = ARTICLES.find(a => a.id === articleId) ?? ARTICLES[0];
   const related = getRelatedArticles(article.id);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2500);
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
+
+  const toggleSave = () => {
+    if (saved) {
+      unsaveArticle(articleId);
+      showToast("Đã bỏ lưu bài viết");
+    } else {
+      saveArticle(articleId);
+      showToast("Đã lưu bài viết");
+    }
   };
 
   return (
     <div style={{ minHeight:"100%", background:"#FFF8F4", fontFamily:"'Nunito', sans-serif", position:"relative" }}>
-      {/* Top nav */}
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 20px 12px" }}>
         <button onClick={onBack} style={{ background:"none", border:"none", cursor:"pointer", padding:"4px" }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5F6368" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
         </button>
         <div style={{ display:"flex", gap:"10px" }}>
-          <button onClick={() => setSaved(!saved)} style={{ background:"none", border:"none", cursor:"pointer", padding:"4px" }}>
+          <button onClick={toggleSave} style={{ background:"none", border:"none", cursor:"pointer", padding:"4px" }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill={saved?"#D95C5C":"none"} stroke={saved?"#D95C5C":"#5F6368"} strokeWidth="2" strokeLinecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
           </button>
           <button onClick={() => setShowShare(true)} style={{ background:"none", border:"none", cursor:"pointer", padding:"4px" }}>
@@ -40,20 +48,17 @@ export default function ArticleScreen({ articleId, onBack, onNavigateToEvidence,
         </div>
       </div>
 
-      {/* Toast */}
       {toast && (
         <div style={{ position:"fixed", bottom:"84px", left:"50%", transform:"translateX(-50%)", background:"#2A2420", color:"#FFF", fontSize:"13px", fontWeight:600, padding:"10px 20px", borderRadius:"24px", zIndex:200, whiteSpace:"nowrap", boxShadow:"0 4px 16px rgba(0,0,0,0.2)" }}>
           {toast}
         </div>
       )}
 
-      {/* Share sheet */}
       {showShare && (
         <ShareSheet onClose={() => setShowShare(false)} onToast={(msg) => { showToast(msg); setShowShare(false); }}/>
       )}
 
       <div style={{ padding:"0 20px" }}>
-        {/* Topic + meta */}
         <div style={{ marginBottom:"12px" }}>
           <span style={{ fontSize:"11px", fontWeight:700, color:article.topicAccent, background:article.topicBg, padding:"4px 12px", borderRadius:"20px", display:"inline-block", marginBottom:"10px" }}>
             {article.topicIcon} {article.topicLabel}
@@ -70,22 +75,14 @@ export default function ArticleScreen({ articleId, onBack, onNavigateToEvidence,
           </div>
         </div>
 
-        {/* Cover */}
-        <div style={{
-          height:"180px", borderRadius:"18px", marginBottom:"20px",
-          background: article.coverGradient,
-          display:"flex", alignItems:"center", justifyContent:"center",
-          overflow:"hidden",
-        }}>
+        <div style={{ height:"180px", borderRadius:"18px", marginBottom:"20px", background: article.coverGradient, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden" }}>
           <span style={{ fontSize:"64px", opacity:0.6 }}>{article.topicIcon}</span>
         </div>
 
-        {/* Body */}
         {article.body.map((para, i) => (
           <p key={i} style={{ margin:"0 0 14px", fontSize:"14px", color:"#3A3630", lineHeight:1.75 }}>{para}</p>
         ))}
 
-        {/* Evidence claim cards — WealthRISE brand */}
         {article.claims.map(claim => (
           <button key={claim.id} onClick={() => onNavigateToEvidence(claim.id)} style={{
             width:"100%", textAlign:"left", padding:"14px 16px",
@@ -106,7 +103,6 @@ export default function ArticleScreen({ articleId, onBack, onNavigateToEvidence,
           </button>
         ))}
 
-        {/* Related articles */}
         {related.length > 0 && (
           <>
             <h2 style={{ margin:"24px 0 12px", fontSize:"16px", fontWeight:800, color:"#2A2420" }}>Có thể bạn cũng quan tâm</h2>
@@ -126,7 +122,6 @@ export default function ArticleScreen({ articleId, onBack, onNavigateToEvidence,
           </>
         )}
 
-        {/* Challenge CTA */}
         <div style={{ marginTop:"24px", marginBottom:"32px", padding:"18px", borderRadius:"20px", background:"linear-gradient(130deg,#3A2E28,#5A4030)" }}>
           <p style={{ margin:"0 0 4px", fontSize:"10px", fontWeight:700, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.8px" }}>Biến kiến thức thành hành động</p>
           <div style={{ display:"flex", alignItems:"flex-start", gap:"10px", margin:"10px 0 14px" }}>
@@ -137,11 +132,7 @@ export default function ArticleScreen({ articleId, onBack, onNavigateToEvidence,
               <p style={{ margin:"4px 0 0", fontSize:"11px", color:"rgba(255,255,255,0.5)" }}>{article.relatedChallenge.duration} · {article.relatedChallenge.effort}</p>
             </div>
           </div>
-          <button onClick={onNavigateToChallenge} style={{
-            padding:"11px 22px", borderRadius:"13px", background:"#F28C64", border:"none", cursor:"pointer",
-            fontSize:"13px", fontWeight:700, color:"#FFFFFF", fontFamily:"'Nunito', sans-serif",
-            boxShadow:"0 3px 10px rgba(242,140,100,0.35)",
-          }}>Xem thử thách →</button>
+          <button onClick={onNavigateToChallenge} style={{ padding:"11px 22px", borderRadius:"13px", background:"#F28C64", border:"none", cursor:"pointer", fontSize:"13px", fontWeight:700, color:"#FFFFFF", fontFamily:"'Nunito', sans-serif", boxShadow:"0 3px 10px rgba(242,140,100,0.35)" }}>Xem thử thách →</button>
         </div>
       </div>
     </div>
