@@ -1,0 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import 'tailwindcss';
+
+@theme inline {
+  /* WealthRISE design tokens */
+  --color-background: #FFF8F4;
+  --color-foreground: #1A1612;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #1A1612;
+  --color-primary: #F28C64;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #7B987E;
+  --color-secondary-foreground: #FFFFFF;
+  --color-blush: #F4A7A2;
+  --color-coral-red: #D95C5C;
+  --color-lavender: #C8B6E2;
+  --color-muted: #F5EDE8;
+  --color-muted-foreground: #5F6368;
+  --color-accent: #F28C64;
+  --color-border: #EDE4DC;
+  --color-ring: #F28C64;
+  --font-sans: 'Inter', sans-serif;
+  --radius-sm: 0.75rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.5rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #FFF8F4;
+  color: #1A1612;
+  margin: 0;
+  padding: 0;
+}
+
+::-webkit-scrollbar {
+  width: 0px;
+}

@@ -1,0 +1,10 @@
+{
+  "description": "Create visually appealing screens based on provided images, perfect for designers and developers seeking to streamline their workflow and enhance creativity.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
